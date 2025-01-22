@@ -16,7 +16,7 @@ type User struct {
 	ID          uint32 // Immutable
 	Email       string // Mutable
 	DisplayName string // Nickname
-	AvatarURL   string
+	AvatarURL   string // URL to avatar image
 
 	webAuthnCredentials []webauthn.Credential
 }
@@ -38,6 +38,9 @@ func (u *User) WebAuthnName() string {
 }
 func (u *User) WebAuthnDisplayName() string {
 	return u.DisplayName
+}
+func (U *User) WebAuthnAvatar() string {
+	return U.AvatarURL
 }
 func (u *User) WebAuthnCredentials() []webauthn.Credential {
 	return u.webAuthnCredentials
