@@ -2,11 +2,13 @@ package main
 
 import (
 	"encoding/base64"
+	"fmt"
 	"html/template"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"path"
 	"strings"
 )
@@ -46,7 +48,7 @@ func (a *Admin) Handler() http.Handler {
 	m.HandleFunc(`GET /login`, a.getLogin)
 	m.HandleFunc(`GET /logout`, a.getLogout)
 	m.HandleFunc(`POST /register`, a.postRegister)
-
+	m.Handle(`POST /avatar`, a.requireLogin(a.postAvatar))
 	m.Handle(`GET /profile`, a.requireLogin(a.getProfile))
 
 	const webAuthnPrefix = `/login/webauthn/`
@@ -147,4 +149,33 @@ func (a *Admin) getProfile(w http.ResponseWriter, r *http.Request) {
 		User: a.store.AuthRequest(r),
 	}
 	a.executeTemplate(w, `profile.html`, &d)
+}
+
+func (a *Admin) postAvatar(w http.ResponseWriter, r *http.Request) {
+	user := a.store.AuthRequest(r)
+	if user == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	file, header, err := r.FormFile("avatar")
+	if err != nil {
+		http.Error(w, "File upload error", http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+
+	// 简单将文件存储在 avatars 文件夹下，文件名 = 用户 ID
+	filename := fmt.Sprintf("avatars/%d_%s", user.ID, header.Filename)
+	out, err := os.Create(filename)
+	if err != nil {
+		http.Error(w, "Cannot save file", http.StatusInternalServerError)
+		return
+	}
+	defer out.Close()
+	io.Copy(out, file)
+
+	// 更新用户 AvatarURL
+	user.AvatarURL = "/" + filename
+
+	http.Redirect(w, r, a.prefixed(`/profile`), http.StatusFound)
 }

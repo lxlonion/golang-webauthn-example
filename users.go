@@ -16,6 +16,7 @@ type User struct {
 	ID          uint32 // Immutable
 	Email       string // Mutable
 	DisplayName string // Nickname
+	AvatarURL   string
 
 	webAuthnCredentials []webauthn.Credential
 }
