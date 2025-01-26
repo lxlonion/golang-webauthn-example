@@ -112,3 +112,13 @@ func (s *Store) AddNewUser(email string) (*User, error) {
 	s.users[u.ID] = u
 	return u, nil
 }
+
+// Store struct 中添加方法
+func (s *Store) UpdateUserAvatar(userID uint32, avatarURL string) error {
+	user := s.GetUserByID(userID)
+	if user == nil {
+		return fmt.Errorf("user not found")
+	}
+	user.AvatarURL = avatarURL
+	return nil
+}

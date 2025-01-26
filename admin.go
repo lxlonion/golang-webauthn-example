@@ -164,7 +164,13 @@ func (a *Admin) postAvatar(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	// 简单将文件存储在 avatars 文件夹下，文件名 = 用户 ID
+	// 确保 avatars 目录存在
+	if err := os.MkdirAll("avatars", 0755); err != nil {
+		http.Error(w, "Cannot create avatars directory", http.StatusInternalServerError)
+		return
+	}
+
+	// 保存文件
 	filename := fmt.Sprintf("avatars/%d_%s", user.ID, header.Filename)
 	out, err := os.Create(filename)
 	if err != nil {
@@ -174,10 +180,10 @@ func (a *Admin) postAvatar(w http.ResponseWriter, r *http.Request) {
 	defer out.Close()
 	io.Copy(out, file)
 
-	// 更新用户 AvatarURL
-	user.AvatarURL = "/" + filename
-	if err := a.store.UpdateUser(user); err != nil {
-		http.Error(w, "Failed to update user in DB", http.StatusInternalServerError)
+	// 更新数据库中的头像URL
+	avatarURL := "/" + filename
+	if err := a.store.UpdateUserAvatar(user.ID, avatarURL); err != nil {
+		http.Error(w, "Failed to update avatar in database", http.StatusInternalServerError)
 		return
 	}
 
