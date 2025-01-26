@@ -16,6 +16,7 @@ func main() {
 	const prefix = `/admin/`
 	admin := NewAdmin(store, wa, prefix)
 	http.Handle(prefix, admin.Handler())
+	http.Handle("/avatars/", http.StripPrefix("/avatars/", http.FileServer(http.Dir("avatars"))))
 	http.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "index.html")
 	})

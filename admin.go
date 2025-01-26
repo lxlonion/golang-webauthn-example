@@ -176,6 +176,10 @@ func (a *Admin) postAvatar(w http.ResponseWriter, r *http.Request) {
 
 	// 更新用户 AvatarURL
 	user.AvatarURL = "/" + filename
+	if err := a.store.UpdateUser(user); err != nil {
+		http.Error(w, "Failed to update user in DB", http.StatusInternalServerError)
+		return
+	}
 
 	http.Redirect(w, r, a.prefixed(`/profile`), http.StatusFound)
 }
