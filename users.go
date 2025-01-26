@@ -6,7 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strings"
+
+	//"strings"
+	"database/sql"
 
 	"github.com/go-webauthn/webauthn/webauthn"
 )
@@ -51,14 +53,52 @@ func (u *User) WebAuthnIcon() string {
 
 // TODO: concurrency
 type Store struct {
-	// simulate database rows
-	users map[uint32]*User
+	db    *sql.DB
+	users map[uint32]*User // 用作缓存
 }
 
 func NewStore() *Store {
-	return &Store{
-		users: map[uint32]*User{},
+	db, err := initDB()
+	if err != nil {
+		panic(err)
 	}
+
+	s := &Store{
+		db:    db,
+		users: make(map[uint32]*User),
+	}
+
+	// 初始化时加载所有用户到内存
+	if err := s.loadAllUsers(); err != nil {
+		panic(err)
+	}
+	return s
+}
+
+func (s *Store) loadAllUsers() error {
+	rows, err := s.db.Query("SELECT id, email, display_name, avatar_url, web_authn_credentials FROM users")
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var u User
+		var credsJSON string
+		err := rows.Scan(&u.ID, &u.Email, &u.DisplayName, &u.AvatarURL, &credsJSON)
+		if err != nil {
+			return err
+		}
+
+		creds, err := credentialsFromJSON(credsJSON)
+		if err != nil {
+			return err
+		}
+		u.webAuthnCredentials = creds
+
+		s.users[u.ID] = &u
+	}
+	return rows.Err()
 }
 
 func (s *Store) AuthRequest(r *http.Request) *User {
@@ -74,8 +114,19 @@ func (s *Store) AuthRequest(r *http.Request) *User {
 	return nil
 }
 
-func (s *Store) AddWebAuthnCredentialFor(u *User, credential *webauthn.Credential) {
+func (s *Store) AddWebAuthnCredentialFor(u *User, credential *webauthn.Credential) error {
 	u.webAuthnCredentials = append(u.webAuthnCredentials, *credential)
+
+	credsJSON, err := credentialsToJSON(u.webAuthnCredentials)
+	if err != nil {
+		return err
+	}
+
+	_, err = s.db.Exec(
+		"UPDATE users SET web_authn_credentials = ? WHERE id = ?",
+		credsJSON, u.ID,
+	)
+	return err
 }
 
 func (s *Store) MakeCookie(u *User, w http.ResponseWriter, r *http.Request) {
@@ -99,13 +150,28 @@ func (s *Store) GetUserByID(id uint32) *User {
 }
 
 func (s *Store) AddNewUser(email string) (*User, error) {
-	for _, u := range s.users {
-		if strings.EqualFold(u.Email, email) {
-			return nil, errors.New(`email address taken by someone else`)
-		}
+	// 检查邮箱是否已存在
+	var exists bool
+	err := s.db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE email = ?)", email).Scan(&exists)
+	if err != nil {
+		return nil, err
 	}
+	if exists {
+		return nil, errors.New("email address taken by someone else")
+	}
+
+	// 插入新用户
+	result, err := s.db.Exec(
+		"INSERT INTO users (email, display_name, avatar_url) VALUES (?, '', '')",
+		email,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	id, _ := result.LastInsertId()
 	u := &User{
-		ID:          uint32(len(s.users) + 1), // TODO
+		ID:          uint32(id),
 		Email:       email,
 		DisplayName: "",
 	}
@@ -113,12 +179,14 @@ func (s *Store) AddNewUser(email string) (*User, error) {
 	return u, nil
 }
 
-// Store struct 中添加方法
 func (s *Store) UpdateUserAvatar(userID uint32, avatarURL string) error {
-	user := s.GetUserByID(userID)
-	if user == nil {
-		return fmt.Errorf("user not found")
+	_, err := s.db.Exec("UPDATE users SET avatar_url = ? WHERE id = ?", avatarURL, userID)
+	if err != nil {
+		return err
 	}
-	user.AvatarURL = avatarURL
+
+	if user := s.users[userID]; user != nil {
+		user.AvatarURL = avatarURL
+	}
 	return nil
 }
