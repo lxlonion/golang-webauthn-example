@@ -24,7 +24,25 @@ func initDB() (*sql.DB, error) {
             web_authn_credentials TEXT
         )
     `)
-	return db, err
+	if err != nil {
+		return nil, err
+	}
+
+	// 新增：创建 OAuth2.0 客户端信息表
+	_, err = db.Exec(`
+        CREATE TABLE IF NOT EXISTS oauth2_clients (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            client_id TEXT UNIQUE NOT NULL,
+            client_secret TEXT NOT NULL,
+            redirect_uri TEXT NOT NULL,
+            domain TEXT
+        )
+    `)
+	if err != nil {
+		return nil, err
+	}
+
+	return db, nil
 }
 
 // 将凭证转换为JSON字符串
