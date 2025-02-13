@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 
 	"github.com/go-oauth2/oauth2/v4/manage"
 	"github.com/go-oauth2/oauth2/v4/models"
@@ -48,6 +49,23 @@ func userAuthorizeHandler(w http.ResponseWriter, r *http.Request) (string, error
 
 // OAuthAuthorizeHandler 处理 /oauth2/authorize 请求
 func OAuthAuthorizeHandler(w http.ResponseWriter, r *http.Request) {
+	// 检查用户是否已登录
+	user := storeInstance.AuthRequest(r)
+	if user == nil {
+		// 如果用户未登录，重定向到 OAuth2 登录页面
+		clientID := r.URL.Query().Get("client_id")
+		redirectURI := r.URL.Query().Get("redirect_uri")
+		scope := r.URL.Query().Get("scope")
+		state := r.URL.Query().Get("state")
+
+		// 构建重定向 URL，包含 client_id 和 redirect_uri
+		loginURL := fmt.Sprintf("/admin/oauth2/login?client_id=%s&redirect_uri=%s&scope=%s&state=%s",
+			url.QueryEscape(clientID), url.QueryEscape(redirectURI), url.QueryEscape(scope), url.QueryEscape(state))
+
+		http.Redirect(w, r, loginURL, http.StatusFound)
+		return
+	}
+
 	if err := OAuthServer.HandleAuthorizeRequest(w, r); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}

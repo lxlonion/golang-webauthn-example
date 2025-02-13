@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>OAuth2 Login</title>
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <script src="webauthn.js"></script>
+</head>
+<body>
+    <h1>OAuth2 Login</h1>
+    <p>You need to log in to authorize the application.</p>
+
+    <!-- WebAuthn 登录按钮 -->
+    <div>
+        <button onclick="webauthnLogin()">Login with WebAuthn</button>
+        <script>
+            async function webauthnLogin() {
+                let wa = new WebAuthn();
+                try {
+                    await wa.login();
+                    alert('Successfully logged in.');
+                    // 登录成功后跳转回授权页面
+                    window.location.href = "{{.authURL}}";
+                } catch(e) {
+                    if (e instanceof DOMException && e.name == "AbortError") {
+                        console.log('已取消操作。');
+                        return;
+                    }
+                    alert(e);
+                }
+            }
+        </script>
+    </div>
+</body>
+</html>
