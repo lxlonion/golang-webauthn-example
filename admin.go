@@ -60,6 +60,12 @@ func (a *Admin) Handler() http.Handler {
 
 	m.HandleFunc(`GET /oauth2/login`, a.getOAuth2Login) // 添加 OAuth2 登录处理
 
+	// 添加对 webauthn.js 的单独路由，手动设置 Content-Type
+	m.HandleFunc(`GET /webauthn.js`, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/javascript")
+		http.ServeFile(w, r, "webauthn.js")
+	})
+
 	return http.StripPrefix(strings.TrimSuffix(a.prefix, "/"), m)
 }
 
@@ -222,7 +228,11 @@ func (a *Admin) getOAuth2Login(w http.ResponseWriter, r *http.Request) {
 
 	// 如果用户未登录，显示登录页面，并将授权 URL 作为参数传递
 	data := map[string]string{
-		"authURL": authURL,
+		"authURL":     authURL,
+		"clientID":    clientID,    // 添加 clientID
+		"redirectURI": redirectURI, // 添加 redirectURI
+		"scope":       scope,       // 添加 scope
+		"state":       state,       // 添加 state
 	}
 	a.executeTemplate(w, "oauth2_login.html", data)
 }
