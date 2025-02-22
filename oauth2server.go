@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 
@@ -19,13 +20,37 @@ func InitOAuthServer() {
 	// 使用内存令牌存储
 	manager.MustTokenStorage(store.NewMemoryTokenStore())
 
-	// 使用内存客户端存储，示例客户端
+	// 使用数据库客户端存储
 	clientStore := store.NewClientStore()
-	clientStore.Set("client_1", &models.Client{
-		ID:     "client_1",
-		Secret: "secret",
-		Domain: "http://localhost",
-	})
+
+	// 从数据库加载客户端信息
+	rows, err := storeInstance.db.Query("SELECT client_id, client_secret, domain FROM oauth2_clients")
+	if err != nil {
+		log.Fatalf("Failed to query oauth2_clients: %v", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var (
+			clientID     string
+			clientSecret string
+			domain       string
+		)
+		if err := rows.Scan(&clientID, &clientSecret, &domain); err != nil {
+			log.Fatalf("Failed to scan oauth2_clients row: %v", err)
+		}
+
+		clientStore.Set(clientID, &models.Client{
+			ID:     clientID,
+			Secret: clientSecret,
+			Domain: domain,
+		})
+	}
+
+	if err := rows.Err(); err != nil {
+		log.Fatalf("Failed to iterate oauth2_clients rows: %v", err)
+	}
+
 	manager.MapClientStorage(clientStore)
 
 	manager.SetAuthorizeCodeTokenCfg(manage.DefaultAuthorizeCodeTokenCfg)
