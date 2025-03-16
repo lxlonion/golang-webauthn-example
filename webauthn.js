@@ -2,7 +2,7 @@ class WebAuthnAPI {
 	constructor(){}
 
 	async beginRegistration() {
-		let path = `/admin/login/webauthn/register:begin`;
+		let path = `/admin/webauthn/register:begin`;
 		let rsp = await fetch(path, {
 			method: 'POST',
 		});
@@ -19,7 +19,7 @@ class WebAuthnAPI {
 		options.response.clientDataJSON = await this.base64encode(options.response.clientDataJSON);
 		options.response.attestationObject = await this.base64encode(options.response.attestationObject);
 
-		let path = `/admin/login/webauthn/register:finish`;
+		let path = `/admin/webauthn/register:finish`;
 		let rsp = await fetch(path, {
 			method: 'POST',
 			body: JSON.stringify(options),
@@ -29,7 +29,7 @@ class WebAuthnAPI {
 		}
 	}
 	async beginLogin() {
-		let path = `/admin/login/webauthn/login:begin`;
+		let path = `/admin/webauthn/login:begin`;
 		let rsp = await fetch(path, {
 			method: 'POST',
 		});
@@ -42,7 +42,7 @@ class WebAuthnAPI {
 	}
 	// challenge: 只是用来查找 session 的，肯定不会用作服务端真实 challenge。想啥呢？
 	async finishLogin(options, challenge) {
-		let path = `/admin/login/webauthn/login:finish?challenge=${challenge}`;
+		let path = `/admin/webauthn/login:finish?challenge=${challenge}`;
 		options.rawId = await this.base64encode(options.rawId);
 		options.response.authenticatorData = await this.base64encode(options.response.authenticatorData);
 		options.response.clientDataJSON = await this.base64encode(options.response.clientDataJSON);
@@ -58,13 +58,13 @@ class WebAuthnAPI {
 	}
 
 	async base64encode(arr) {
-		let path = '/admin/login/webauthn/base64:encode';
+		let path = '/admin/webauthn/base64:encode';
 		let body = JSON.stringify(Array.from(new Uint8Array(arr)));
 		let rsp = await fetch(path, { method: 'POST', body: body});
 		return await rsp.text();
 	}
 	async base64decode(str) {
-		let path = '/admin/login/webauthn/base64:decode';
+		let path = '/admin/webauthn/base64:decode';
 		let rsp = await fetch(path, { method: 'POST', body: str});
 		return new Uint8Array(await rsp.json());
 	}
