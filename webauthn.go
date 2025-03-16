@@ -1,4 +1,4 @@
-package webauthn
+package main
 
 import (
 	"encoding/base64"
@@ -12,18 +12,18 @@ import (
 
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
-	"github.com/lxlonion/golang-webauthn-example/users"
 )
 
 type WebAuthn struct {
 	wa    *webauthn.WebAuthn
-	store *users.Store
+	store *Store
 
+	// TODO: concurrency
 	registrationSessions map[uint32]*webauthn.SessionData
 	loginSessions        map[string]*webauthn.SessionData
 }
 
-func NewWebAuthn(store *users.Store, hostname string, displayName string, origins []string) *WebAuthn {
+func NewWebAuthn(store *Store, hostname string, displayName string, origins []string) *WebAuthn {
 	config := &webauthn.Config{
 		RPID:          hostname,
 		RPDisplayName: displayName,
@@ -60,12 +60,15 @@ func (a *WebAuthn) Handler(prefix string) http.Handler {
 	mux.HandleFunc(`POST /login:begin`, a.BeginLogin)
 	mux.HandleFunc(`POST /login:finish`, a.FinishLogin)
 
+	// 垃圾 js，转换个 ArrayBuffer 和 base64 都麻烦得要死。
 	mux.HandleFunc(`POST /base64:encode`, a.base64Encode)
 	mux.HandleFunc(`POST /base64:decode`, a.base64Decode)
 
 	return http.StripPrefix(strings.TrimSuffix(prefix, "/"), mux)
 }
 
+// [1,2,3] => XXXXXX
+// 官方的 protocol.URLEncodedBase64 会把结果转成 JSON 字符串，不好用。
 func (a *WebAuthn) base64Encode(w http.ResponseWriter, r *http.Request) {
 	var bs []byte
 	if err := json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(&bs); err != nil {
@@ -76,6 +79,7 @@ func (a *WebAuthn) base64Encode(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(str))
 }
 
+// XXXXXX => [1,2,3]
 func (a *WebAuthn) base64Decode(w http.ResponseWriter, r *http.Request) {
 	var s string
 	if all, err := io.ReadAll(io.LimitReader(r.Body, 1<<20)); err != nil {
@@ -107,6 +111,9 @@ func (a *WebAuthn) BeginRegistration(w http.ResponseWriter, r *http.Request) {
 	}
 
 	options, session, err := a.wa.BeginRegistration(user,
+		// this is for discoverable login. Discoverable login do not require you
+		// to first enter your username/email, it it's you select a user from
+		// the list.
 		webauthn.WithResidentKeyRequirement(protocol.ResidentKeyRequirementRequired),
 	)
 	if err != nil {
@@ -165,23 +172,27 @@ func (a *WebAuthn) FinishLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	delete(a.loginSessions, challenge)
 
-	var user *users.User
+	var user *User
 
+	// if no error, we successfully logged in.
 	credential, err := a.wa.FinishDiscoverableLogin(a.findUser(&user), *session, r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
 
+	// as per the lib, we should update credential list.
 	a.store.AddWebAuthnCredentialFor(user, credential)
 
+	// keep logged in from browser by setting cookie.
 	a.store.MakeCookie(user, w, r)
 
 	w.WriteHeader(http.StatusOK)
 }
 
-func (a *WebAuthn) findUser(user **users.User) func(rawID, userHandle []byte) (webauthn.User, error) {
+func (a *WebAuthn) findUser(user **User) func(rawID, userHandle []byte) (webauthn.User, error) {
 	return func(rawID, userHandle []byte) (webauthn.User, error) {
+		// just in case
 		if *user != nil {
 			return nil, fmt.Errorf(`user already found`)
 		}

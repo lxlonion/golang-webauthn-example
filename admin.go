@@ -11,6 +11,8 @@ import (
 	"os"
 	"path"
 	"strings"
+
+	"github.com/go-oauth2/oauth2/v4/server"
 )
 
 type LoginData struct {
@@ -18,21 +20,23 @@ type LoginData struct {
 }
 
 type Admin struct {
-	prefix    string
-	wa        *WebAuthn
-	store     *Store
-	templates map[string]*template.Template
+	prefix       string
+	wa           *WebAuthn
+	store        *Store
+	templates    map[string]*template.Template
+	oauth2Server *server.Server // OAuth2 服务器
 }
 
 func NewAdmin(store *Store, wa *WebAuthn, prefix string) *Admin {
 	a := &Admin{
-		store:     store,
-		prefix:    prefix,
-		wa:        wa,
-		templates: make(map[string]*template.Template),
+		store:        store,
+		prefix:       prefix,
+		wa:           wa,
+		templates:    make(map[string]*template.Template),
+		oauth2Server: OAuthServer, // 初始化 OAuth2 服务器
 	}
 
-	for _, f := range []string{`login.html`, `profile.html`} {
+	for _, f := range []string{`login.html`, `profile.html`, `oauth2_login.html`} {
 		a.templates[f] = template.Must(template.ParseFiles(f))
 	}
 
@@ -53,6 +57,8 @@ func (a *Admin) Handler() http.Handler {
 
 	const webAuthnPrefix = `/login/webauthn/`
 	m.Handle(webAuthnPrefix, a.wa.Handler(webAuthnPrefix))
+
+	m.HandleFunc(`GET /oauth2/login`, a.getOAuth2Login) // 添加 OAuth2 登录处理
 
 	// 添加对 webauthn.js 的单独路由，手动设置 Content-Type
 	m.HandleFunc(`GET /webauthn.js`, func(w http.ResponseWriter, r *http.Request) {
@@ -194,4 +200,39 @@ func (a *Admin) postAvatar(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, a.prefixed(`/profile`), http.StatusFound)
+}
+
+// getOAuth2Login 处理 OAuth2 登录跳转
+func (a *Admin) getOAuth2Login(w http.ResponseWriter, r *http.Request) {
+	clientID := r.URL.Query().Get("client_id")
+	redirectURI := r.URL.Query().Get("redirect_uri")
+	scope := r.URL.Query().Get("scope")
+	state := r.URL.Query().Get("state")
+
+	// 验证 client_id 和 redirect_uri (这里只是简单示例，实际应用中需要更严格的验证)
+	if clientID == "" || redirectURI == "" {
+		http.Error(w, "invalid client_id or redirect_uri", http.StatusBadRequest)
+		return
+	}
+
+	// 构建授权 URL
+	authURL := fmt.Sprintf("/oauth2/authorize?client_id=%s&redirect_uri=%s&response_type=code&scope=%s&state=%s",
+		url.QueryEscape(clientID), url.QueryEscape(redirectURI), url.QueryEscape(scope), url.QueryEscape(state))
+
+	// 检查用户是否已登录
+	if user := a.store.AuthRequest(r); user != nil {
+		// 如果用户已登录，直接跳转到授权页面
+		http.Redirect(w, r, authURL, http.StatusFound)
+		return
+	}
+
+	// 如果用户未登录，显示登录页面，并将授权 URL 作为参数传递
+	data := map[string]string{
+		"authURL":     authURL,
+		"clientID":    clientID,    // 添加 clientID
+		"redirectURI": redirectURI, // 添加 redirectURI
+		"scope":       scope,       // 添加 scope
+		"state":       state,       // 添加 state
+	}
+	a.executeTemplate(w, "oauth2_login.html", data)
 }

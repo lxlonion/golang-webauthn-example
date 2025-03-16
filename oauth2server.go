@@ -38,7 +38,7 @@ func InitOAuthServer() {
 			clientSecret string
 			domain       string
 		)
-		if err := rows.Scan(&clientID, &clientSecret, &domain); err {
+		if err := rows.Scan(&clientID, &clientSecret, &domain); err != nil {
 			log.Fatalf("Failed to scan oauth2_clients row: %v", err)
 		}
 
