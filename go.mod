@@ -1,18 +1,20 @@
-module github.com/movsb/golang-webauthn-example
+module github.com/lxlonion/golang-webauthn-example
 
 go 1.22.2
 
-require github.com/go-webauthn/webauthn v0.10.2
+require (
+	github.com/go-oauth2/oauth2/v4 v4.5.2
+	github.com/go-webauthn/webauthn v0.10.2
+	github.com/mattn/go-sqlite3 v1.14.24
+)
 
 require (
 	github.com/fxamacker/cbor/v2 v2.6.0 // indirect
-	github.com/go-oauth2/oauth2/v4 v4.5.2 // indirect
 	github.com/go-webauthn/x v0.1.9 // indirect
 	github.com/golang-jwt/jwt v3.2.1+incompatible // indirect
 	github.com/golang-jwt/jwt/v5 v5.2.1 // indirect
 	github.com/google/go-tpm v0.9.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/mattn/go-sqlite3 v1.14.24 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/tidwall/btree v0.0.0-20191029221954-400434d76274 // indirect
 	github.com/tidwall/buntdb v1.1.2 // indirect

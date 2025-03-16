@@ -38,8 +38,8 @@ func main() {
 	http.Handle(prefix, admin.Handler())
 	http.HandleFunc("/oauth2/authorize", OAuthAuthorizeHandler)
 	http.HandleFunc("/oauth2/token", OAuthTokenHandler)
-	http.HandleFunc("/oauth2/user", OAuthUserHandler)       // 添加新的路由
-	http.HandleFunc("/orders", orderMgr.HandleOrderRequest) // 注册订单管理路由
+	http.HandleFunc("/oauth2/user", OAuthUserHandler)
+	http.HandleFunc("/orders/", orderMgr.HandleOrderRequest)
 	http.Handle("/avatars/", http.StripPrefix("/avatars/", http.FileServer(http.Dir("avatars"))))
 	http.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "index.html")
