@@ -15,18 +15,21 @@ import (
 	"github.com/go-oauth2/oauth2/v4/server"
 )
 
+// LoginData 结构体用于存储登录页面所需的数据
 type LoginData struct {
 	Name string
 }
 
+// Admin 结构体包含管理后台所需的所有依赖和服务
 type Admin struct {
-	prefix       string
-	wa           *WebAuthn
-	store        *Store
-	templates    map[string]*template.Template
-	oauth2Server *server.Server // OAuth2 服务器
+	prefix       string                        // URL 前缀，用于管理后台的所有路由
+	wa           *WebAuthn                     // WebAuthn 实例，用于处理 WebAuthn 相关的认证
+	store        *Store                        // Store 实例，用于存储和管理用户信息
+	templates    map[string]*template.Template // 模板缓存，用于存储预加载的 HTML 模板
+	oauth2Server *server.Server                // OAuth2 服务器实例
 }
 
+// NewAdmin 创建一个新的 Admin 实例
 func NewAdmin(store *Store, wa *WebAuthn, prefix string) *Admin {
 	a := &Admin{
 		store:        store,
@@ -36,6 +39,7 @@ func NewAdmin(store *Store, wa *WebAuthn, prefix string) *Admin {
 		oauth2Server: OAuthServer, // 初始化 OAuth2 服务器
 	}
 
+	// 预加载 HTML 模板
 	for _, f := range []string{`login.html`, `profile.html`, `oauth2_login.html`} {
 		a.templates[f] = template.Must(template.ParseFiles(f))
 	}
@@ -43,21 +47,29 @@ func NewAdmin(store *Store, wa *WebAuthn, prefix string) *Admin {
 	return a
 }
 
+// Handler 配置管理后台的所有路由
 func (a *Admin) Handler() http.Handler {
 	m := http.NewServeMux()
 
+	// 根路径重定向到 profile 页面
 	m.Handle(`GET /{$}`, a.requireLogin(a.getRoot))
+	// 静态资源文件服务
 	m.Handle(`/`, http.FileServer(http.Dir(".")))
 
+	// 登录、登出、注册处理
 	m.HandleFunc(`GET /login`, a.getLogin)
 	m.HandleFunc(`GET /logout`, a.getLogout)
 	m.HandleFunc(`POST /register`, a.postRegister)
+	// 头像上传处理
 	m.Handle(`POST /avatar`, a.requireLogin(a.postAvatar))
+	// 用户资料页面
 	m.Handle(`GET /profile`, a.requireLogin(a.getProfile))
 
+	// WebAuthn 路由
 	const webAuthnPrefix = `/login/webauthn/`
 	m.Handle(webAuthnPrefix, a.wa.Handler(webAuthnPrefix))
 
+	// OAuth2 登录处理
 	m.HandleFunc(`GET /oauth2/login`, a.getOAuth2Login) // 添加 OAuth2 登录处理
 
 	// 添加对 webauthn.js 的单独路由，手动设置 Content-Type
@@ -66,9 +78,11 @@ func (a *Admin) Handler() http.Handler {
 		http.ServeFile(w, r, "webauthn.js")
 	})
 
+	// 移除 URL 前缀
 	return http.StripPrefix(strings.TrimSuffix(a.prefix, "/"), m)
 }
 
+// postRegister 处理用户注册
 func (a *Admin) postRegister(w http.ResponseWriter, r *http.Request) {
 	email := r.PostFormValue("email")
 	// TODO validate email
@@ -82,10 +96,12 @@ func (a *Admin) postRegister(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, a.prefixed(`profile`), http.StatusFound)
 }
 
+// prefixed 添加 URL 前缀
 func (a *Admin) prefixed(s string) string {
 	return path.Join(a.prefix, s)
 }
 
+// redirectToLogin 重定向到登录页面，并传递原始 URL
 func (a *Admin) redirectToLogin(w http.ResponseWriter, r *http.Request, to string) {
 	args := url.Values{}
 	args.Set(`u`, to)
@@ -99,6 +115,7 @@ func (a *Admin) redirectToLogin(w http.ResponseWriter, r *http.Request, to strin
 	http.Redirect(w, r, u.String(), http.StatusFound)
 }
 
+// requireLogin 检查用户是否已登录，如果未登录则重定向到登录页面
 func (a *Admin) requireLogin(h http.HandlerFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if user := a.store.AuthRequest(r); user == nil {
@@ -109,10 +126,12 @@ func (a *Admin) requireLogin(h http.HandlerFunc) http.Handler {
 	})
 }
 
+// getRoot 重定向到 profile 页面
 func (a *Admin) getRoot(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, a.prefixed(`/profile`), http.StatusFound)
 }
 
+// executeTemplate 执行 HTML 模板
 func (a *Admin) executeTemplate(w io.Writer, name string, data any) {
 	t := a.templates[name]
 	if t == nil {
@@ -123,7 +142,9 @@ func (a *Admin) executeTemplate(w io.Writer, name string, data any) {
 	}
 }
 
+// getLogin 显示登录页面
 func (a *Admin) getLogin(w http.ResponseWriter, r *http.Request) {
+	// 如果用户已经登录，则重定向到 profile 页面
 	if a.store.AuthRequest(r) != nil {
 		to := a.prefixed(`/profile`)
 		if u := r.URL.Query().Get(`u`); u != "" {
@@ -139,15 +160,18 @@ func (a *Admin) getLogin(w http.ResponseWriter, r *http.Request) {
 	a.executeTemplate(w, `login.html`, &d)
 }
 
+// getLogout 处理用户登出
 func (a *Admin) getLogout(w http.ResponseWriter, r *http.Request) {
 	a.store.RemoveCookie(w, r)
 	http.Redirect(w, r, a.prefixed(`/login`), http.StatusFound)
 }
 
+// ProfileData 结构体用于存储用户资料页面所需的数据
 type ProfileData struct {
 	User *User
 }
 
+// PublicKeys 获取用户的公钥列表
 func (d *ProfileData) PublicKeys() []string {
 	ss := make([]string, 0, len(d.User.WebAuthnCredentials()))
 	for _, c := range d.User.WebAuthnCredentials() {
@@ -156,6 +180,7 @@ func (d *ProfileData) PublicKeys() []string {
 	return ss
 }
 
+// getProfile 显示用户资料页面
 func (a *Admin) getProfile(w http.ResponseWriter, r *http.Request) {
 	d := &ProfileData{
 		User: a.store.AuthRequest(r),
@@ -163,6 +188,7 @@ func (a *Admin) getProfile(w http.ResponseWriter, r *http.Request) {
 	a.executeTemplate(w, `profile.html`, &d)
 }
 
+// postAvatar 处理用户头像上传
 func (a *Admin) postAvatar(w http.ResponseWriter, r *http.Request) {
 	user := a.store.AuthRequest(r)
 	if user == nil {
