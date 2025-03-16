@@ -1,4 +1,4 @@
-package main
+package admin
 
 import (
 	"encoding/base64"
@@ -11,6 +11,9 @@ import (
 	"os"
 	"path"
 	"strings"
+
+	"github.com/lxlonion/golang-webauthn-example/webauthn"
+	"github.com/lxlonion/golang-webauthn-example/users"
 )
 
 type LoginData struct {
@@ -19,12 +22,12 @@ type LoginData struct {
 
 type Admin struct {
 	prefix    string
-	wa        *WebAuthn
-	store     *Store
+	wa        *webauthn.WebAuthn
+	store     *users.Store
 	templates map[string]*template.Template
 }
 
-func NewAdmin(store *Store, wa *WebAuthn, prefix string) *Admin {
+func NewAdmin(store *users.Store, wa *webauthn.WebAuthn, prefix string) *Admin {
 	a := &Admin{
 		store:     store,
 		prefix:    prefix,
@@ -139,7 +142,7 @@ func (a *Admin) getLogout(w http.ResponseWriter, r *http.Request) {
 }
 
 type ProfileData struct {
-	User *User
+	User *users.User
 }
 
 func (d *ProfileData) PublicKeys() []string {
