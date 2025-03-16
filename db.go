@@ -28,21 +28,21 @@ func initDB() (*sql.DB, error) {
 		return nil, err
 	}
 
-	// 创建订单表 order表中的sale和buyer字段用username,time用unix时间戳
-	// 	_, err = db.Exec(`
-	// 	CREATE TABLE IF NOT EXISTS order (
-	// 		id INTEGER PRIMARY KEY AUTOINCREMENT,
-	// 		seller TEXT,
-	// 		buyer TEXT,
-	// 		price INTEGER NOT NULL,
-	// 		post_link TEXT NOT NULL,
-	// 		time INTEGER NOT NULL, //unix时间戳
-	// 		status Text //订单状态：已完成，发货，已发货
-	// 	)
-	// `)
-	// if err != nil {
-	// 	return nil, err
-	// }
+	//创建订单表 order表中的sale和buyer字段用username,time用unix时间戳
+	_, err = db.Exec(`
+		CREATE TABLE IF NOT EXISTS orders (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			seller TEXT,
+			buyer TEXT,
+			price INTEGER NOT NULL,
+			post_link TEXT NOT NULL,
+			time INTEGER NOT NULL, -- unix时间戳
+			status TEXT DEFAULT 'A' -- 订单状态：A-没有发货(默认)，B-已经发货，C-确定签收
+		)
+	`)
+	if err != nil {
+		return nil, err
+	}
 
 	// 新增：创建 OAuth2.0 客户端信息表
 	_, err = db.Exec(`
