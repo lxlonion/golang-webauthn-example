@@ -112,7 +112,7 @@
                     <td>{{.Order.Buyer}}</td>
                     <td>¥{{.Order.Price}}</td>
                     <td><a href="{{.Order.PostLink}}" target="_blank">查看链接</a></td>
-                    <td>{{.FormattedTime}}</td>
+                    <td><span class="timestamp" data-timestamp="{{.Order.Time}}"></span></td>
                     <td>
                         <span class="status-badge 
                             {{if eq .Order.Status "A"}}status-not-shipped
@@ -148,5 +148,26 @@
         </div>
         {{end}}
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const timestampElements = document.querySelectorAll('.timestamp');
+            timestampElements.forEach(element => {
+                const timestamp = parseInt(element.dataset.timestamp);
+                if (!isNaN(timestamp)) {
+                    const date = new Date(timestamp * 1000); // Convert seconds to milliseconds
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    const hours = String(date.getHours()).padStart(2, '0');
+                    const minutes = String(date.getMinutes()).padStart(2, '0');
+                    const seconds = String(date.getSeconds()).padStart(2, '0');
+                    element.textContent = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+                } else {
+                    element.textContent = 'Invalid Date';
+                }
+            });
+        });
+    </script>
 </body>
 </html>

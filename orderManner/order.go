@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time" // 导入 time 包
 )
 
 // OrderManager 订单管理器
@@ -58,19 +59,18 @@ func (om *OrderManager) HandleOrderRequest(w http.ResponseWriter, r *http.Reques
 }
 
 // handleNewOrderFromGet 处理GET请求中的新订单
-// 格式：domain/?{seller or buyer}+{post link}+{unix time}
+// 格式：domain/?{seller or buyer}+{post link}
 func (om *OrderManager) handleNewOrderFromGet(w http.ResponseWriter, r *http.Request, email string) {
 	query := r.URL.RawQuery
 	parts := strings.Split(query, "+")
 
-	if len(parts) < 3 {
+	if len(parts) < 2 { // 修改判断条件
 		http.Error(w, "格式错误：缺少必要参数", http.StatusBadRequest)
 		return
 	}
 
 	role := parts[0] // seller 或 buyer
-	postLink := parts[1]
-	timeStr := parts[2]
+	postLink := parts[2]
 
 	// 获取价格，如果有的话
 	price := 0
@@ -86,21 +86,17 @@ func (om *OrderManager) handleNewOrderFromGet(w http.ResponseWriter, r *http.Req
 		price = 100 // 默认价格
 	}
 
-	// 解析时间戳
-	timestamp, err := strconv.ParseInt(timeStr, 10, 64)
-	if err != nil {
-		http.Error(w, "无效的时间戳", http.StatusBadRequest)
-		return
-	}
+	// 使用当前时间戳
+	timestamp := time.Now().Unix()
 
 	// 根据角色设置卖家和买家
 	var seller, buyer string
 	if role == "seller" {
-		seller = email
-		buyer = "unknown" // 可以在订单页面更新
-	} else if role == "buyer" {
 		buyer = email
-		seller = "unknown" // 可以在订单页面更新
+		seller = parts[1] // 获取 seller 的值
+	} else if role == "buyer" {
+		seller = email
+		buyer = parts[1] // 获取 buyer 的值
 	} else {
 		http.Error(w, "无效的角色参数", http.StatusBadRequest)
 		return
@@ -115,7 +111,7 @@ func (om *OrderManager) handleNewOrderFromGet(w http.ResponseWriter, r *http.Req
 	}
 
 	// 创建新订单
-	_, err = CreateOrder(om.DB, seller, buyer, price, postLink)
+	_, err := CreateOrder(om.DB, seller, buyer, price, postLink)
 	if err != nil {
 		http.Error(w, "创建订单失败: "+err.Error(), http.StatusInternalServerError)
 		return
