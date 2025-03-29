@@ -155,7 +155,7 @@ func (a *Admin) getLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	d := LoginData{
-		Name: "Golang WebAuthn Example",
+		Name: "Example",
 	}
 	a.executeTemplate(w, `login.html`, &d)
 }

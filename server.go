@@ -44,5 +44,10 @@ func main() {
 	http.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "index.html")
 	})
+
+	// 添加静态文件服务
+	fs := http.FileServer(http.Dir("."))
+	http.Handle("/static/", http.StripPrefix("/static/", fs))
+
 	log.Fatalln(http.ListenAndServeTLS(":2345", "localhost.crt", "localhost.key", nil))
 }
