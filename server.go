@@ -14,7 +14,7 @@ func main() {
 	storeInstance = NewStore()
 	wa := NewWebAuthn(storeInstance,
 		"localhost",
-		"Golang WebAuthn Example",
+		"WebAuthn Order System",
 		[]string{"https://localhost:2345"},
 	)
 	const prefix = `/admin/`

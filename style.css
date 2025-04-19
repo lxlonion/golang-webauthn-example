@@ -41,6 +41,64 @@ a:hover {
 
 input, button {
 	padding: 6px;
-	display: inline-block;
+	/* display: inline-block; */ /* Removed */
 	margin: .5em 0;
+	box-sizing: border-box; /* Add for consistent sizing */
+}
+
+/* Add styles for email input */
+input[type="email"].inline-input {
+    padding: 12px; /* Match button padding */
+    font-size: 12px; /* Match button font size */
+    border: 1px solid #ccc; /* Add border for visibility */
+    border-radius: 5px; /* Match button border-radius */
+    vertical-align: middle; /* Align vertically */
+    flex-grow: 1; /* Allow input to take available space */
+    margin-right: 10px; /* Add space between input and button */
+}
+
+.big-button {
+    padding: 12px 26px;
+    font-size: 12px;
+    background-color: #777777;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    /* display: block; */ /* Removed */
+    /* margin: 20px auto; */ /* Removed */
+    text-align: center;
+    /* max-width: 300px; */ /* Removed or adjust as needed */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.3s;
+    vertical-align: middle; /* Align vertically */
+    flex-shrink: 0; /* Prevent button from shrinking */
+}
+
+.big-button:hover {
+    background-color: #777777;
+}
+
+/* New class for inline form elements */
+.form-inline {
+    display: flex;
+    align-items: center; /* Vertically align items in the middle */
+    justify-content: center; /* Center items horizontally */
+    margin-bottom: 1em; /* Add some space below the form */
+}
+
+/* Adjust button margin when inside form-inline */
+.form-inline .big-button {
+    margin: 0; /* Reset margin */
+}
+
+/* New class to center content */
+.center-content {
+    text-align: center;
+}
+
+/* Ensure the button inside center-content behaves correctly */
+.center-content .big-button {
+    display: inline-block; /* Ensure it respects text-align */
+    margin: 0 auto; /* Optional: Reinforce centering if needed */
 }

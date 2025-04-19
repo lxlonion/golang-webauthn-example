@@ -2,17 +2,18 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>OAuth2 Login</title>
-    <link rel="stylesheet" type="text/css" href="style.css">
+    <title>授权登录</title>
+    <link rel="stylesheet" type="text/css" href="/static/style.css">
     <script src="/admin/webauthn.js"></script>
 </head>
 <body>
-    <h1>OAuth2 Login</h1>
-    <p>You need to log in to authorize the application.</p>
+    <h1>授权登录</h1>
+    <p>点击下方按钮授权</p>
 
     <!-- WebAuthn 登录按钮 -->
     <div>
-        <button onclick="webauthnLogin()">Login with WebAuthn</button>
+        <button class="big-button" onclick="webauthnLogin()">Passkey验证</button>
+        <a href="/admin/login" class="passkey-button">注册新账号</a>
         <script>
             async function webauthnLogin() {
                 let wa = new WebAuthn();

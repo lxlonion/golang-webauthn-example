@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8" />
 <script src="webauthn.js"></script>
-<link rel="stylesheet" type="text/css" href="style.css" />
+<link rel="stylesheet" type="text/css" href="/static/style.css" />
 </head>
 <body>
 <div>
 	<p><b>ID:</b>{{ .User.ID }}</p>
-	<p><b>Email:</b>{{ .User.Email }}</p>
+	<p><b>邮箱:</b>{{ .User.Email }}</p>
 	{{ if .PublicKeys }}
 	<p><b>PubKeys：</b></p>
 	<ul>
@@ -19,21 +19,21 @@
 	{{ else }}
 		<p><b>PubKeys:</b>(none)</p>
 	{{ end }}
-	<p><b>Avatar:</b></p>
+	<!-- <p><b>Avatar:</b></p>
 	{{ if .User.AvatarURL }}
 	<img src="{{ .User.AvatarURL }}" alt="Avatar" width="100"/>
 	{{ else }}
 	<p>(No avatar)</p>
-	{{ end }}
-	<form action="avatar" method="post" enctype="multipart/form-data">
+	{{ end }} -->
+	<!-- <form action="avatar" method="post" enctype="multipart/form-data">
 		<input type="file" name="avatar" accept="image/*" />
 		<button type="submit">Upload Avatar</button>
-	</form>
-	<p><button onclick="register()">Add WebAuthn Credential</button></p>
+	</form> -->
+	<p><button onclick="register()">注册Passkey</button></p>
 </div>
 <div>
-	<p><button onclick="location.href='/'">Back Home</button></p>
-	<p><button onclick="location.href='logout'">Logout</button></p>
+	<p><button class="big-button" onclick="location.href='/orders'">我的订单</button>
+	<button class="big-button" onclick="location.href='logout'">登出</button></p>
 </div>
 	
 </div>

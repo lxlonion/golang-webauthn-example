@@ -155,7 +155,7 @@ func (a *Admin) getLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	d := LoginData{
-		Name: "Example",
+		Name: "订单系统",
 	}
 	a.executeTemplate(w, `login.html`, &d)
 }
