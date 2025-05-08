@@ -60,7 +60,6 @@ func (a *WebAuthn) Handler(prefix string) http.Handler {
 	mux.HandleFunc(`POST /login:begin`, a.BeginLogin)
 	mux.HandleFunc(`POST /login:finish`, a.FinishLogin)
 
-	// 垃圾 js，转换个 ArrayBuffer 和 base64 都麻烦得要死。
 	mux.HandleFunc(`POST /base64:encode`, a.base64Encode)
 	mux.HandleFunc(`POST /base64:decode`, a.base64Decode)
 
